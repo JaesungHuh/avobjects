@@ -3,6 +3,7 @@
 __pycache__
 *.so
 *.o
+.DS_Store
 
 *.egg
 *.egg-info
@@ -35,3 +36,6 @@ dist/
 *.png
 *.lprof
 
+media/*
+temp/*
+checkpoints/*

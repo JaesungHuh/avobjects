@@ -7,10 +7,15 @@ import tempfile
 
 import numpy as np
 import torch
-import sys 
+import sys
 
 from tqdm import tqdm
 
+current = os.path.dirname(os.path.realpath(__file__))
+parent_directory = os.path.dirname(current)
+sys.path.append(parent_directory)
+
+from utils import gpu_initializer
 arguments_strModel = 'default'
 
 ##########################################################
@@ -27,7 +32,7 @@ def Backward(tensorInput, tensorFlow):
             1, 1, tensorFlow.size(2), 1).expand(tensorFlow.size(0), -1, -1, tensorFlow.size(3))
 
         Backward_tensorGrid[str(tensorFlow.size())] = torch.cat(
-            [tensorHorizontal, tensorVertical], 1).cuda()
+            [tensorHorizontal, tensorVertical], 1).to(tensorInput.device)
     # end
 
     if str(tensorFlow.size()) not in Backward_tensorPartial:
@@ -206,8 +211,10 @@ class Network(torch.nn.Module):
                 try:
                     from correlation import correlation # the custom cost volume layer
                 except:
-                    sys.path.insert(0, './correlation'); import correlation # you should consider upgrading python
-
+                    current = os.path.dirname(os.path.realpath(__file__))
+                    new_directory = os.path.join(current, 'correlation')
+                    sys.path.append(new_directory)
+                    from correlation import FunctionCorrelation # you should consider upgrading python
                 tensorFlow = None
                 tensorFeat = None
 
@@ -324,7 +331,7 @@ class Network(torch.nn.Module):
 ##########################################################
 
 
-def estimate(moduleNetwork, tensorFirst, tensorSecond):
+def estimate(moduleNetwork, tensorFirst, tensorSecond, device=torch.device('cpu')):
     assert(tensorFirst.size(1) == tensorSecond.size(1))
     assert(tensorFirst.size(2) == tensorSecond.size(2))
 
@@ -334,8 +341,8 @@ def estimate(moduleNetwork, tensorFirst, tensorSecond):
     # assert(intWidth == 1024) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
     # assert(intHeight == 436) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
 
-    tensorPreprocessedFirst = tensorFirst.cuda().view(1, 3, intHeight, intWidth)
-    tensorPreprocessedSecond = tensorSecond.cuda().view(1, 3, intHeight, intWidth)
+    tensorPreprocessedFirst = tensorFirst.to(device).view(1, 3, intHeight, intWidth)
+    tensorPreprocessedSecond = tensorSecond.to(device).view(1, 3, intHeight, intWidth)
 
     intPreprocessedWidth = int(math.floor(math.ceil(intWidth / 64.0) * 64.0))
     intPreprocessedHeight = int(math.floor(math.ceil(intHeight / 64.0) * 64.0))
@@ -359,21 +366,24 @@ def estimate(moduleNetwork, tensorFirst, tensorSecond):
 def tensor_from_im(im):
     return torch.FloatTensor(im[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) * (1.0 / 255.0))
 
-def calculate_flow_on_video(ims):
+def calculate_flow_on_video(ims, device=torch.device('cuda')):
 
-    moduleNetwork = Network().cuda().eval()
+    moduleNetwork = Network().to(device).eval()
 
     # make sure to not compute gradients for computational performance
     torch.set_grad_enabled(False)
     # make sure to use cudnn for computational performance
-    torch.backends.cudnn.enabled = True
+    if device == torch.device('cuda'):
+        torch.backends.cudnn.enabled = True
+    else:
+        torch.backends.cudnn.enabled = False
 
     flows = []
     base = np.mgrid[:ims[0].shape[0], :ims[0].shape[1]].astype(np.float32)
     base = base[::-1]
     for t in tqdm(range(len(ims) - 1), desc='Calculating Flow'):
         flow = estimate(moduleNetwork, tensor_from_im(
-            ims[t]), tensor_from_im(ims[t + 1]))
+            ims[t]), tensor_from_im(ims[t + 1]), device=device)
         flow = flow.numpy()
         # convert flow from relative to absolute coordinates
         flow = flow + base
@@ -388,16 +398,16 @@ def main():
     output_path = sys.argv[2]
     gpu_id = sys.argv[3]
 
-    # set up gpu 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-    global device
-    device = torch.device('cuda')
+    # set up gpu
+    # os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    # global device
+    # device = torch.device('cuda')
+    device = gpu_initializer(gpu_id)
 
-    import numpy as np
     ims = np.load(input_path)
-    flow = calculate_flow_on_video(ims)
+    flow = calculate_flow_on_video(ims, device)
     np.save(output_path, flow)
 
 if __name__ == '__main__':
+    print("Start running PWCNet")
     main()
-

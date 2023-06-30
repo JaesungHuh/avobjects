@@ -19,7 +19,7 @@ class DemoDataset(data.Dataset):
         self.fps = fps
         self.sample_rate = sample_rate
 
-        self.data_path = 'media' 
+        self.data_path = 'media'
 
         self.all_vids = [video_path]
 
@@ -40,13 +40,16 @@ class DemoDataset(data.Dataset):
         vid_path_25fps = os.path.join(self.data_path, vid_name + '_25fps.mp4')
 
         # -- reencode video to 25 fps
-        command = (
-            "ffmpeg -threads 1 -loglevel error -y -i {} -an -r 25 {}".format(
-                vid_path_orig, vid_path_25fps))
-        from subprocess import call
-        cmd = command.split(' ')
-        print('Resampling {} to 25 fps'.format(vid_path_orig))
-        call(cmd)
+        if not os.path.exists(vid_path_25fps):
+            command = (
+                "ffmpeg -threads 1 -loglevel error -y -i {} -an -r 25 {}".format(
+                    vid_path_orig, vid_path_25fps))
+            from subprocess import call
+            cmd = command.split(' ')
+            print('Resampling {} to 25 fps'.format(vid_path_orig))
+            call(cmd)
+        else:
+            print(f"{vid_path_25fps} exists!")
 
         video = self.__load_video__(vid_path_25fps, resize=self.resize)
 
@@ -60,6 +63,8 @@ class DemoDataset(data.Dataset):
             from subprocess import call
             cmd = command.split(' ')
             call(cmd)
+        else:
+            print(f"{aud_path} exists!")
 
         audio = load_wav(aud_path).astype('float32')
 

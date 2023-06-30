@@ -19,11 +19,12 @@ from viz_utils import VideoSaver, viz_avobjects, viz_source_separation
 
 class DemoEvalTrainer():
 
-    def __init__(self, model, opts):
+    def __init__(self, model, opts, device='cpu'):
         self.model = model
         self.opts = opts
 
-        self.device = torch.device('cuda:0')
+        self.device = device
+        #self.device = torch.device('cuda:0')
         self.model.to(self.device)
 
         # make log directories
@@ -169,9 +170,9 @@ class DemoEvalTrainer():
 
             # -- 6. visualization + reconstruction
 
-            b_id = 0 # first batch sample  
+            b_id = 0 # first batch sample
 
-            # visualize the attention map + avobject trajectories 
+            # visualize the attention map + avobject trajectories
             viz_avobjects(
                 video[b_id],
                 audio[b_id],
@@ -203,7 +204,7 @@ class DemoEvalTrainer():
             enh_vid_name = os.path.join(self.video_saver.savedir,
                                           'sep_vid/{}/enh_'.format(self.step))
             imtable.show(
-                [ [ 'AV attention + tracked obects', imtable.Video(video_fname=avobj_vid_name) ], ] 
+                [ [ 'AV attention + tracked obects', imtable.Video(video_fname=avobj_vid_name) ], ]
               + [ ['Speaker {}'.format(ii),
                     imtable.Video(video_fname=enh_vid_name + '{}.mp4'.format(ii)) ]
                         for ii in range(self.opts.n_peaks)],
@@ -359,7 +360,7 @@ class DemoEvalTrainer():
             # again in each call and the input images and output flow are passed
             # by copying into shared memory (/dev/shm)
             # This is very suboptimal - not to be used for training
-            flow = calc_flow_on_vid_wrapper(flow_inp[b_id].detach().cpu().numpy(), gpu_id=self.opts.gpu_id)
+            flow = calc_flow_on_vid_wrapper(flow_inp[b_id].detach().cpu().numpy(), tmp_dir='temp', gpu_id=self.opts.gpu_id)
             flow = torch.from_numpy(flow).permute([0, 2, 3, 1])  # tchw -> thwc
             flows.append(flow)
         flow = np.stack(flows)
@@ -426,4 +427,3 @@ class DemoEvalTrainer():
         agg_att_map = np.tile(agg_att_map[:, None], [1, time_dim, 1, 1])
 
         return avobject_trajectories, agg_att_map, att_map_smooth
-

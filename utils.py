@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 class DebugModule(nn.Module):
     """
-    Wrapper class for printing the activation dimensions 
+    Wrapper class for printing the activation dimensions
     """
 
     def __init__(self, name=None):
@@ -194,7 +194,7 @@ def detect_peaks(image, overlap_thresh=10):
 
 def non_max_suppression_fast(peaks_map, values_map, overlap_thresh):
     """
-    adapted from 
+    adapted from
     https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
     """
     # if there are no boxes, return an empty list
@@ -409,8 +409,8 @@ def logsoftmax_2d(logits):
 
 def run_func_in_parts(func, vid_emb, aud_emb, part_len, dim, device):
     """
-    Run given function in parts, spliting the inputs on dimension dim 
-    This is used to save memory when inputs too large to compute on gpu 
+    Run given function in parts, spliting the inputs on dimension dim
+    This is used to save memory when inputs too large to compute on gpu
     """
     dist_chunk = []
     for v_spl, a_spl in tqdm(list(
@@ -425,18 +425,20 @@ def run_func_in_parts(func, vid_emb, aud_emb, part_len, dim, device):
 
 def calc_flow_on_vid_wrapper(ims, tmp_dir='/dev/shm', gpu_id=0):
     """
-    Wrapper for calling PWC-net through a separate process 
+    Wrapper for calling PWC-net through a separate process
     """
+    if not os.path.isdir(tmp_dir):
+        os.makedirs(tmp_dir, exist_ok=True)
 
     # Free GPU memory before running flow in another process.
     torch.cuda.empty_cache()
-    
-    input_ims_path = tempfile.NamedTemporaryFile(suffix='.npy', dir=tmp_dir).name 
-    output_flow_path = tempfile.NamedTemporaryFile(suffix='.npy', dir=tmp_dir).name  
+
+    input_ims_path = tempfile.NamedTemporaryFile(suffix='.npy', dir=tmp_dir).name
+    output_flow_path = tempfile.NamedTemporaryFile(suffix='.npy', dir=tmp_dir).name
 
     np.save(input_ims_path, ims)
 
-    command = "python flow/pwcnet.py {} {} {}".format(input_ims_path, output_flow_path, gpu_id) 
+    command = "python flow/pwcnet.py {} {} {}".format(input_ims_path, output_flow_path, gpu_id)
     from subprocess import call
     cmd = command.split(' ')
     call(cmd)
@@ -446,11 +448,11 @@ def calc_flow_on_vid_wrapper(ims, tmp_dir='/dev/shm', gpu_id=0):
     os.remove(input_ims_path)
     os.remove(output_flow_path)
 
-    return flow 
+    return flow
 
 # -------------------------- colorize utils -----------------------------------------------
 """
-Borrowed from Tom Jakab & Ankush Gupta 
+Borrowed from Tom Jakab & Ankush Gupta
 https://github.com/tomasjakab/imm/blob/3f34424b853c9ead980a9b7f116d47b56d476b58/imm/utils/colorize.py
 
 A set of common utilities used within the environments. These are

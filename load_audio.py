@@ -39,7 +39,8 @@ def wav2filterbanks(wav, mel_basis=None):
                        center=True,
                        pad_mode='reflect',
                        normalized=False,
-                       onesided=True)  # b x F x T x 2
+                       onesided=True,
+                       return_complex=False)  # b x F x T x 2
     spect = spect[:, :, :-1, :]
 
     # ----- Log filterbanks --------------
@@ -49,8 +50,8 @@ def wav2filterbanks(wav, mel_basis=None):
     if mel_basis is None:
         # Build a Mel filter
         mel_basis = torch.from_numpy(
-            librosa.filters.mel(audio_opts['sample_rate'],
-                                audio_opts['n_fft'],
+            librosa.filters.mel(sr=audio_opts['sample_rate'],
+                                n_fft=audio_opts['n_fft'],
                                 n_mels=audio_opts['n_mel'],
                                 fmin=0,
                                 fmax=int(audio_opts['sample_rate'] / 2)))

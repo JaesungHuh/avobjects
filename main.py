@@ -16,11 +16,11 @@ def main():
     import numpy as np
     np.random.seed(1)
 
-    gpu_initializer(opts.gpu_id)
+    device = gpu_initializer(opts.gpu_id)
 
     model = LWTNet()
 
-    trainer = DemoEvalTrainer(model, opts)
+    trainer = DemoEvalTrainer(model, opts, device)
 
     if opts.resume:
         load_checkpoint(opts.resume, model)
@@ -36,7 +36,7 @@ def main():
                             num_workers=opts.n_workers)
 
     model.eval()
-    with torch.no_grad():  
+    with torch.no_grad():
         trainer.eval(dataloader)
 
 if __name__ == '__main__':
